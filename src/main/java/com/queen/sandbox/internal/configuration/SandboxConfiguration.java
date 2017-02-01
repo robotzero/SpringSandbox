@@ -1,22 +1,35 @@
 package com.queen.sandbox.internal.configuration;
 
+import com.amazonaws.services.sqs.AmazonSQSAsync;
+import com.amazonaws.services.sqs.AmazonSQSAsyncClient;
+import com.queen.sandbox.SQSMessageListener;
 import com.queen.sandbox.files.FileProcessor;
+import com.queen.sandbox.files.SQSProcessor;
+import org.apache.tomcat.jni.Poll;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cloud.aws.messaging.core.QueueMessagingTemplate;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.integration.annotation.InboundChannelAdapter;
 import org.springframework.integration.annotation.Poller;
+import org.springframework.integration.annotation.ServiceActivator;
+import org.springframework.integration.aws.inbound.SqsMessageDrivenChannelAdapter;
+import org.springframework.integration.aws.outbound.SqsMessageHandler;
 import org.springframework.integration.channel.DirectChannel;
+import org.springframework.integration.channel.QueueChannel;
+import org.springframework.integration.core.MessageProducer;
 import org.springframework.integration.core.MessageSource;
 import org.springframework.integration.dsl.IntegrationFlow;
 import org.springframework.integration.dsl.IntegrationFlows;
 import org.springframework.integration.file.FileReadingMessageSource;
-import org.springframework.integration.file.RecursiveLeafOnlyDirectoryScanner;
 import org.springframework.integration.file.filters.AcceptOnceFileListFilter;
 import org.springframework.integration.file.filters.CompositeFileListFilter;
 import org.springframework.integration.file.filters.SimplePatternFileListFilter;
 import org.springframework.integration.file.transformer.FileToByteArrayTransformer;
 import org.springframework.integration.file.transformer.FileToStringTransformer;
 import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.MessageHandler;
+import org.springframework.messaging.PollableChannel;
 
 import java.io.File;
 
@@ -53,6 +66,11 @@ public class SandboxConfiguration {
     }
 
     @Bean
+    public SQSProcessor sqsProcessor() {
+        return new SQSProcessor();
+    }
+
+    @Bean
     @InboundChannelAdapter(value = "fileInputChannel", poller = @Poller(fixedDelay = "1000"))
     public MessageSource<File> fileReadingMessageSource() {
         CompositeFileListFilter<File> filters = new CompositeFileListFilter<>();
@@ -66,4 +84,43 @@ public class SandboxConfiguration {
         source.setFilter(filters);
         return source;
     }
+
+    @Bean
+    public PollableChannel inputChannel() {
+        return new QueueChannel();
+    }
+
+    @Bean
+    public MessageProducer sqsMessageDrivenChannelAdapter(AmazonSQSAsync amazonSqs) {
+        SqsMessageDrivenChannelAdapter adapter = new SqsMessageDrivenChannelAdapter(amazonSqs, "");
+        adapter.setOutputChannel(inputChannel());
+        adapter.setAutoStartup(true);
+        adapter.setMaxNumberOfMessages(1);
+        adapter.setSendTimeout(2000);
+        adapter.setVisibilityTimeout(200);
+        adapter.setWaitTimeOut(20);
+        return adapter;
+    }
+
+    @Bean
+    public QueueMessagingTemplate queueMessagingTemplate(AmazonSQSAsync amazonSqs) {
+        return new QueueMessagingTemplate(amazonSqs);
+    }
+
+    @Bean
+    @ServiceActivator(inputChannel = "")
+    public MessageHandler sqsMessageHandler(QueueMessagingTemplate queueMessagingTemplate) {
+        return new SqsMessageHandler(queueMessagingTemplate);
+    }
+
+    @Bean
+    public SQSMessageListener sqsMessageListener(QueueMessagingTemplate queueMessagingTemplate) {
+        return new SQSMessageListener(queueMessagingTemplate, inputChannel());
+    }
+
+//    @Bean
+//    public IntegrationFlow processSQSFlow() {
+//        return IntegrationFlows.from("inputChannel")
+//                .handle("sqsProcessor", "process").get();
+//    }
 }
