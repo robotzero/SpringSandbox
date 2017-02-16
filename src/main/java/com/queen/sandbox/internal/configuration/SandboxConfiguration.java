@@ -1,12 +1,12 @@
 package com.queen.sandbox.internal.configuration;
 
 import com.amazonaws.services.sqs.AmazonSQSAsync;
-import com.amazonaws.services.sqs.AmazonSQSAsyncClient;
+import com.queen.sandbox.Order;
+import com.queen.sandbox.OrderTest;
 import com.queen.sandbox.SQSMessageListener;
 import com.queen.sandbox.files.FileProcessor;
 import com.queen.sandbox.files.SQSProcessor;
-import org.apache.tomcat.jni.Poll;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.aspectj.weaver.ast.Or;
 import org.springframework.cloud.aws.messaging.core.QueueMessagingTemplate;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -32,6 +32,10 @@ import org.springframework.messaging.MessageHandler;
 import org.springframework.messaging.PollableChannel;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 @Configuration
 public class SandboxConfiguration {
@@ -90,33 +94,53 @@ public class SandboxConfiguration {
         return new QueueChannel();
     }
 
+//    @Bean
+//    public MessageProducer sqsMessageDrivenChannelAdapter(AmazonSQSAsync amazonSqs) {
+//        SqsMessageDrivenChannelAdapter adapter = new SqsMessageDrivenChannelAdapter(amazonSqs, "");
+//        adapter.setOutputChannel(inputChannel());
+//        adapter.setAutoStartup(true);
+//        adapter.setMaxNumberOfMessages(1);
+//        adapter.setSendTimeout(2000);
+//        adapter.setVisibilityTimeout(200);
+//        adapter.setWaitTimeOut(20);
+//        return adapter;
+//    }
+
+//    @Bean
+//    public QueueMessagingTemplate queueMessagingTemplate(AmazonSQSAsync amazonSqs) {
+//        return new QueueMessagingTemplate(amazonSqs);
+//    }
+
+//    @Bean
+//    @ServiceActivator(inputChannel = "test")
+//    public MessageHandler sqsMessageHandler(QueueMessagingTemplate queueMessagingTemplate) {
+//        return new SqsMessageHandler(queueMessagingTemplate);
+//    }
+
+//    @Bean
+//    public SQSMessageListener sqsMessageListener(QueueMessagingTemplate queueMessagingTemplate) {
+//        return new SQSMessageListener(queueMessagingTemplate, inputChannel());
+//    }
+
     @Bean
-    public MessageProducer sqsMessageDrivenChannelAdapter(AmazonSQSAsync amazonSqs) {
-        SqsMessageDrivenChannelAdapter adapter = new SqsMessageDrivenChannelAdapter(amazonSqs, "");
-        adapter.setOutputChannel(inputChannel());
-        adapter.setAutoStartup(true);
-        adapter.setMaxNumberOfMessages(1);
-        adapter.setSendTimeout(2000);
-        adapter.setVisibilityTimeout(200);
-        adapter.setWaitTimeOut(20);
-        return adapter;
+    public List<Order> emptyOrderList() {
+        return new ArrayList<>();
     }
 
     @Bean
-    public QueueMessagingTemplate queueMessagingTemplate(AmazonSQSAsync amazonSqs) {
-        return new QueueMessagingTemplate(amazonSqs);
+    public List<Order> orderList() {
+        return IntStream.range(0, 20).mapToObj(Order::new).collect(Collectors.toList());
     }
 
     @Bean
-    @ServiceActivator(inputChannel = "")
-    public MessageHandler sqsMessageHandler(QueueMessagingTemplate queueMessagingTemplate) {
-        return new SqsMessageHandler(queueMessagingTemplate);
+    public OrderTest orderTest() {
+        return new OrderTest(orderList(), emptyOrderList());
     }
 
-    @Bean
-    public SQSMessageListener sqsMessageListener(QueueMessagingTemplate queueMessagingTemplate) {
-        return new SQSMessageListener(queueMessagingTemplate, inputChannel());
-    }
+//    @Bean
+//    public IntegrationFlow flow() {
+//        return IntegrationFlows.from("inputChannel").handle("fileProcessor", "handl").get();
+//    }
 
 //    @Bean
 //    public IntegrationFlow processSQSFlow() {

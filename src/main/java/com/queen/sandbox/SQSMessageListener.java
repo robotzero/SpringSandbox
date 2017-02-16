@@ -17,41 +17,4 @@ public class SQSMessageListener {
         this.template = template;
         this.channel = channel;
     }
-
-//    @SqsListener("")
-//    public void queueListener(Object haha) {
-//        System.out.println("TESTING");
-//    }
-
-    @PostConstruct
-    public void sendMessage() {
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    Thread.sleep(20000L);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                System.out.println("SENDING MESSSAGGGEEEE!");
-                Message message = new GenericMessage<>("HELLO");
-                template.setDefaultDestinationName("");
-                template.send(message);
-                System.out.println("MESSAGE SEND");
-            }
-        }).start();
-
-        new Thread(new Runnable() {
-
-            @Override
-            public void run() {
-                try {
-                    Thread.sleep(50000L);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-                System.out.println(channel.receive());
-            }
-        }).start();
-    }
 }

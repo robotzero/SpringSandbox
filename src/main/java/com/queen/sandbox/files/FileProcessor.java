@@ -12,4 +12,8 @@ public class FileProcessor {
 
         System.out.println(String.format(MSG, fileName, content.toString()));
     }
+
+    public void handl(Object msg) {
+        System.out.println("I AM HANDLING STUFF");
+    }
 }
